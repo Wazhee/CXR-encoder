@@ -152,7 +152,7 @@ def prepare(
         with env.begin(write=True) as txn:
             txn.put("length".encode("utf-8"), str(total).encode("utf-8"))
 
-def main():
+def main(dataset="train"):
     resample_map = {"lanczos": Image.LANCZOS, "bilinear": Image.BILINEAR}
     resample = resample_map["lanczos"]
 
@@ -161,14 +161,15 @@ def main():
     print(f"Make dataset of image sizes:", ", ".join(str(s) for s in sizes))
 
     dataset_path = "./1"
-    label_file_path = "./1/train.csv"
+    label_file_path = f"./1/{dataset}.csv"
     imgset = CheXPert(dataset_path, label_file_path, orientation="frontal")
 
     print("Images to process: %d" % len(imgset))
 
-    with lmdb.open("./cxpt_mdb/", map_size=1024 ** 4, readahead=False) as env:
+    with lmdb.open(f"./cxpt_mdb/{dataset}/", map_size=1024 ** 4, readahead=False) as env:
         prepare(env, imgset, n_worker= 1, sizes=sizes, resample=resample)
-        
+
 if __name__ == "__main__":
-    main()
+    # main(dataset="train") # encode training data
+    main(dataset="valid") # encode validation data
 
