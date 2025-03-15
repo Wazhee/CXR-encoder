@@ -92,3 +92,83 @@ class CheXPert(Dataset):
           labels = labels[self.filter_index].reshape([1])
 
         return image_path, label
+
+def resize_and_convert(img, size, resample, quality=100):
+    img = trans_fn.resize(img, size, resample)
+    img = trans_fn.center_crop(img, size)
+    buffer = BytesIO()
+    img.save(buffer, format="jpeg", quality=quality)
+    val = buffer.getvalue()
+
+    return val
+
+
+def resize_multiple(
+    img, sizes=(128, 256, 512, 1024), resample=Image.LANCZOS, quality=100
+):
+    imgs = []
+
+    for size in sizes:
+        imgs.append(resize_and_convert(img, size, resample, quality))
+
+    return imgs
+
+
+def resize_worker(img_file, sizes, resample):
+    i, file, label = img_file
+    img = Image.open(file)
+    img = img.convert("RGB")
+    out = resize_multiple(img, sizes=sizes, resample=resample)
+
+    return i, out, label
+
+
+def prepare(
+    env, dataset, n_worker, sizes=(128, 256, 512, 1024), resample=Image.LANCZOS
+):
+    resize_fn = partial(resize_worker, sizes=sizes, resample=resample)
+
+    files = [(i, file, label) for i, (file, label) in enumerate(dataset)]
+    total = 0
+
+    idx = 0
+    with multiprocessing.Pool(n_worker) as pool:
+        for i, imgs, label in tqdm(pool.imap_unordered(resize_fn, files)):
+            # skip uncertain
+            if label[0] == 1 and label[1] == 1:
+              continue
+
+            i = idx
+            for size, img in zip(sizes, imgs):
+                key = f"{size}-{str(i).zfill(5)}".encode("utf-8")
+                label_key = f"{size}-{str(i).zfill(5)}-label".encode("utf-8")
+
+                with env.begin(write=True) as txn:
+                  txn.put(key, img)
+                  txn.put(label_key, label.astype(np.uint8))
+            idx +=1
+            total += 1
+
+        with env.begin(write=True) as txn:
+            txn.put("length".encode("utf-8"), str(total).encode("utf-8"))
+
+def main():
+    resample_map = {"lanczos": Image.LANCZOS, "bilinear": Image.BILINEAR}
+    resample = resample_map["lanczos"]
+
+    sizes = [256]
+
+    print(f"Make dataset of image sizes:", ", ".join(str(s) for s in sizes))
+
+    dataset_path = "./1"
+    label_file_path = "./1/train.csv"
+    imgset = CheXPert(dataset_path, label_file_path, orientation="frontal")
+
+    print("Images to process: %d" % len(imgset))
+
+    with lmdb.open("./cxpt_mdb/", map_size=1024 ** 4, readahead=False) as env:
+        prepare(env, imgset, n_worker= 1, sizes=sizes, resample=resample)
+        
+if __name__ == "__main__":
+    main()
+
