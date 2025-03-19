@@ -25,6 +25,12 @@ pip install git+https://github.com/S-aiueo32/lpips-pytorch.git
 in order for the method to work properly. The classifier outputs 1x2 array of logits per image.
 
 ### Model Training
+In order to train autoencoder:
+~~~
+python train.py '../../datasets/cxpt_mdb/' --arch autoencoder --batch 16 --output_path ../results/ --classifier_ckpt '../results/Pleural Effusion/pleural_effusion_model.pth' --wandb --filter_label 'Pleural Effusion' --compare_to_healthy
+--ckpt 
+~~~
+
 In order to train the model, run:
 ~~~
 python train.py [dataset_mdb_folder] --arch StyleEx --batch 16 --output_path [output_path]  --classifier_ckpt [model.pth] --wandb --filter_label [label_name] --compare_to_healthy
