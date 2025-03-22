@@ -27,7 +27,7 @@ in order for the method to work properly. The classifier outputs 1x2 array of lo
 ### Model Training
 In order to train StyleGAN3 Encoder:
 ~~~
-python train.py '../../datasets/cxpt_mdb/' --arch autoencoder --batch 32 --output_path ../results/ --classifier_ckpt '../results/Pleural Effusion/pleural_effusion_model.pth' --filter_label 'Pleural Effusion' --compare_to_healthy --ckpt '../results/Pleural Effusion/plural_048000.pt'
+python train_stylegan3.py '../../datasets/cxpt_mdb/' --arch autoencoder --batch 32 --output_path ../results/ --classifier_ckpt '../results/Pleural Effusion/pleural_effusion_model.pth' --filter_label 'Pleural Effusion' --compare_to_healthy --ckpt '../results/Pleural Effusion/plural_048000.pt'
 ~~~
 
 In order to train StyleGAN2 Encoder:
